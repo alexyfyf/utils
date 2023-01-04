@@ -1,4 +1,8 @@
 # last modified 2022-12-12
+# Author: Feng Yan
+
+# This code will parse DGEList from edgeR to GSEA compatible gct, and cls files
+# requires the Gene.Name and Gene.ID columns (usually genetated if using ENSEMBL gtf file for counting)
 
 parse_gct <- function(x){
   # x is a DGElist
