@@ -7,7 +7,7 @@ plot_sankey <- function(gr_list, column = "meth.diff", fulljoin = T){
   require(ggalluvial)
   require(tidyverse)
   require(plyranges)
-  source("http://118.138.241.167/data/Lmo2_ATAC/atac_diff/code/join_overlap_full.R")
+  # source("http://118.138.241.167/data/Lmo2_ATAC/atac_diff/code/join_overlap_full.R")
   
   subset <- lapply(gr_list, function(x) {
     x <- x %>% plyranges::mutate(status=ifelse(!!sym(column)>0,"up","down")) %>% 
@@ -23,7 +23,7 @@ plot_sankey <- function(gr_list, column = "meth.diff", fulljoin = T){
       factor(fac, levels = levels(addNA(fac)), labels = c("down","up","nochange"), 
              exclude = NULL)
     }) %>% 
-    select(length(gr_list):1) %>% ## to reverse the merged data.frame
+    dplyr::select(length(gr_list):1) %>% ## to reverse the merged data.frame
     group_by_all() %>%
     dplyr::summarise(count = dplyr::n()) %>%
     to_lodes_form(axes=1:length(gr_list), id="id") %>%
@@ -33,4 +33,5 @@ plot_sankey <- function(gr_list, column = "meth.diff", fulljoin = T){
     geom_stratum(alpha=0.5) + 
     scale_fill_manual(values = c("#F8766D","#00BA38","#619CFF"))
   print(p)
+  return(list(df = z, plot = p))
 }

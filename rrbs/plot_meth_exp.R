@@ -46,5 +46,5 @@ plot_meth_exp <- function(anno, deg, plot=TRUE, pval.DEG = 0.05){
     geom_text(data=df3, aes(x=meanmethdiff_cut, y=logFC_cut, label=n))
   print(p)
   
-  return(df2)
+  return(list(df=df2,p=p))
 }
