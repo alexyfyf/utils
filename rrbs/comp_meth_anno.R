@@ -1,11 +1,11 @@
-# last modified 2022-12-16
+# last modified 2024-01-25
 # Author: Feng Yan
 
 ## compute annotation of genomic ranges using annotatr (for CGI) and ChIPseeker (for genomic location)
 
 comp_meth_anno <- function(gr, cpgs_info = cpgs_info, column = "mean.meth.diff", 
                            simplify = F, # don't split up and down
-                           plot = "pie",
+                           plot = "bar",
                            genome = "mm10"){
   library(annotatr)
   library(ChIPseeker)
@@ -35,15 +35,15 @@ comp_meth_anno <- function(gr, cpgs_info = cpgs_info, column = "mean.meth.diff",
     library(org.Hs.eg.db)
     txdb=TxDb.Hsapiens.UCSC.hg38.knownGene
     org="org.Hs.eg.db"
-    print(paste0('use txdb ', packageVersion('TxDb.Mmusculus.UCSC.mm10.knownGene'), 
-                 ' and orgdb ', packageVersion('org.Mm.eg.db')))
+    print(paste0('use txdb ', packageVersion('TxDb.Hsapiens.UCSC.hg38.knownGene'), 
+                 ' and orgdb ', packageVersion('org.Hs.eg.db')))
   } else if (genome == "hg19") {
     library(TxDb.Hsapiens.UCSC.hg19.knownGene)
     library(org.Hs.eg.db)
     txdb=TxDb.Hsapiens.UCSC.hg19.knownGene
     org="org.Hs.eg.db"
-    print(paste0('use txdb ', packageVersion('TxDb.Mmusculus.UCSC.mm10.knownGene'), 
-                 'and orgdb ', packageVersion('org.Mm.eg.db')))
+    print(paste0('use txdb ', packageVersion('TxDb.Hsapiens.UCSC.hg19.knownGene'), 
+                 'and orgdb ', packageVersion('org.Hs.eg.db')))
   } else {
     print("Only hg38, hg19 and mm10 are currently supported.")
   }
@@ -100,19 +100,20 @@ comp_meth_anno <- function(gr, cpgs_info = cpgs_info, column = "mean.meth.diff",
   
   if (plot=="bar") {
     # The palette with grey:
-    # cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+    cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
     
     p1 <- cpg_anno_sum %>% gather(key = "group", value = "number", 2:ncol(cpg_anno_sum)) %>%
       mutate(CGIanno=factor(Anno, 
-                            levels = paste(genome, c("cpg_islands","cpg_inter","cpg_shelves","cpg_shores"), sep = "_"),
-                            labels = c("Islands", "OpenSea","Shelves","Shores"))) %>%
+                            levels = paste(genome, c("cpg_inter","cpg_shelves","cpg_shores", "cpg_islands"), sep = "_"),
+                            labels = c("OpenSea","Shelves","Shores", "Islands"))) %>%
       mutate(group=factor(group, levels = c("up","down","total"))) %>% 
       ggplot(aes(x = group, y = number, fill = CGIanno)) + 
       geom_bar(stat = "identity", position = "fill") + 
-      # scale_fill_viridis_d() +
-      # scale_fill_manual(values=cbPalette) +
-      scale_fill_discrete(drop=F) + 
-      geom_text(aes(label=number),  vjust = 1, position = position_fill(vjust = 0.5))
+      scale_fill_manual(values=cbPalette[c(1,2,8,7)], drop = F) +
+      coord_flip() + 
+      geom_text(aes(label=number),  vjust = 0.5, position = position_fill(vjust = 0.5)) +
+      theme(legend.position="bottom") +
+      ggtitle(cpgtitle)
     
     p2 <- tss_anno_sum %>% gather(key = "group", value = "number", 2:ncol(tss_anno_sum)) %>%
       mutate(TSSanno=factor(Anno, 
@@ -122,12 +123,13 @@ comp_meth_anno <- function(gr, cpgs_info = cpgs_info, column = "mean.meth.diff",
       mutate(group=factor(group, levels = c("up","down","total"))) %>% 
       ggplot(aes(x = group, y = number, fill = TSSanno)) + 
       geom_bar(stat = "identity", position = "fill") + 
-      # scale_fill_viridis_d() +
-      # scale_fill_manual(values=cbPalette) +
-      scale_fill_discrete(drop=F) + 
-      geom_text(aes(label=number),  vjust = 2, position = position_fill(vjust = 0.5)) 
+      scale_fill_manual(values=brewer.pal(9, 'Set1'), drop = F) +
+      coord_flip() + 
+      geom_text(aes(label=number),  vjust = 0.5, position = position_fill(vjust = 0.5)) +
+      theme(legend.position="bottom") +
+      ggtitle(tsstitle)
     
-    p3 <- plot_grid(p1,p2)
+    p3 <- plot_grid(p1,p2, nrow = 2)
     
   } else if (plot=="pie") {
     
@@ -141,20 +143,20 @@ comp_meth_anno <- function(gr, cpgs_info = cpgs_info, column = "mean.meth.diff",
       coord_polar(theta="y") + scale_fill_discrete(drop=F) + 
       facet_wrap(~group) + theme(legend.position="none") +
       ggtitle(cpgtitle)
-      #geom_text(aes(label=number),  vjust = 1, position = position_fill(vjust = 0.5))
+    #geom_text(aes(label=number),  vjust = 1, position = position_fill(vjust = 0.5))
     
     p2 <- tss_anno_sum %>% gather(key = "group", value = "number", 2:ncol(tss_anno_sum)) %>%
       mutate(TSSanno=factor(Anno, 
                             levels = c("3' UTR","5' UTR","Distal Intergenic", "Downstream","Exon","Intron",
                                        "Promoter (<=1kb)", "Promoter (1-2kb)","Promoter (2-3kb)"))
-                            ) %>% ## in case drop of factors with 0 counts, and make color consistent
+      ) %>% ## in case drop of factors with 0 counts, and make color consistent
       mutate(group=factor(group, levels = c("up","down","total"))) %>% 
       ggplot(aes(x = "", y = number, fill = TSSanno)) + 
       geom_bar(stat="identity", position="fill") + ## without position="fill", will generate absolute value not pct
       coord_polar(theta="y") + scale_fill_discrete(drop=F) + 
       facet_wrap(~group) + theme(legend.position="none") +
       ggtitle(tsstitle)
-      #geom_text(aes(label=number),  vjust = 2, position = position_fill(vjust = 0.5)) 
+    #geom_text(aes(label=number),  vjust = 2, position = position_fill(vjust = 0.5)) 
     
     p3 <- plot_grid(p1,p2, nrow = 2)
   }
